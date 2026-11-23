@@ -1,39 +1,68 @@
-# Simulación del péndulo doble
+# Double Pendulum: numerical integrators and chaos
 
-Este proyecto simula el movimiento de un péndulo doble utilizando Python y resuelve sus ecuaciones de movimiento mediante `scipy.integrate.odeint` y mediante otro método mas sencillo llamado método de Euler. 
+Simulation of a frictionless double pendulum in Python (NumPy / SciPy). The project
+compares three ways of solving the equations of motion, using **energy conservation**
+and **convergence order** as quality measures, and quantifies the chaotic behaviour with
+the **largest Lyapunov exponent**.
 
-## Contenido
-- Ecuaciones del péndulo doble
-- Simulación numérica para distintas condiciones iniciales mediante los distintos métodos.
-- Visualización de trayectorias y energías. Demostración de fortalezas y debilidades de cada método.
-- Animación del movimiento y comparación. Demostración de la dinámica caótica.
+![Animation](imgs/pendulo_doble1.gif)
 
-## Tecnologías
-- Python
-- NumPy
-- SciPy
-- Matplotlib
+## Results
 
-## Ejemplo de resultados
-- Trayectoria de las masas
+Reproduced by running `python pendulum.py` (both rods horizontal and at rest,
+`m1 = m2 = 1`, `L1 = L2 = 1`).
 
-  ![Pendulo doble](imgs/comparacion_trayectorias_cond1.png)
+| Method | Max. energy drift over 20 s (step h = 0.01 s) | Measured convergence order |
+|---|---|---|
+| Explicit Euler | 131 % of the energy scale `m g L` | 1.18 (theory: 1) |
+| Runge-Kutta 4 (own implementation) | 0.0027 % | 3.93 (theory: 4) |
+| SciPy `odeint`, tolerance 1e-12 (reference) | 6 × 10⁻⁹ % | n/a (adaptive step) |
 
-Podemos observar como los dos métodos difieren en sus soluciones. Veamos en detalle qué ocurre con la energía en cada método
-  
-- Comparación de energías y comparación de métodos
+Since the system has no friction, the energy must stay constant. Euler gains energy
+artificially and RK4 almost does not.
 
-  ![Pendulo doble](imgs/comparacion_energia.png)
+![Energy conservation](imgs/comparacion_energia.png)
 
-Se observa un incremento de energía en el método de Euler. Esto demuestra la acumulación de error numérico, ya que la energía se debería conservar (nuestro sistema físico es ideal y no es disipativo). Además, podemos ver la robustez del método que utiliza el integrador `scipy.integrate.odeint`. 
-  
-- Animación del péndulo - Comparación de dos péndulos que difieren en condiciones iniciales.
+The convergence plot shows how the error at t = 2 s shrinks when the step is reduced.
+The slope of each line is the order of the method.
 
+![Convergence](imgs/convergencia.png)
 
-  ![Pendulo doble](imgs/pendulo_doble1.gif)
-  ![Pendulo doble](imgs/pendulo_doble2.gif)
+**Chaos.** Two trajectories that start 10⁻⁸ apart separate roughly exponentially
+until they saturate. The largest Lyapunov exponent, estimated with the Benettin method,
+is about **0.9 s⁻¹** for the initial condition above (between 0.84 and 0.98 s⁻¹
+depending on the integration time and integrator settings) and about **0.001 s⁻¹** for small
+oscillations, which means regular motion.
 
-Por último observemos las dos animaciones. En la segunda las condiciones iniciales son iguales, salvo que el 2do péndulo inicio 10 grados mas cerrado que en la situación 1. Vemos que este cambio lleva a una dinámica completamente distinta. Esto deja en evidencia que este sistema físico tiene una dinámica caótica, ya que un pequeño cambio en las condiciones iniciales lleva a una evolución completamente distinta.
+![Sensitivity to initial conditions](imgs/sensibilidad_condiciones_iniciales.png)
 
-## Autor
-Tomás Aubin
+## Tests
+
+`pytest` checks that:
+
+- the equilibrium point does not move;
+- the small-oscillation frequency matches the theoretical value `ω² = g (2 − √2)`;
+- the reference solution conserves energy to better than 1e-8;
+- Euler's energy drifts while RK4's does not;
+- RK4 is 4th order (halving the step divides the error by about 16);
+- the Lyapunov exponent is positive for chaotic motion and about 0 for small angles.
+
+## How to run
+
+```bash
+git clone https://github.com/tomiaubin/double-pendulum.git
+cd double-pendulum
+pip install -r requirements.txt
+pytest              # run the tests
+python pendulum.py  # print the numbers above and regenerate the figures
+```
+
+## Files
+
+- `pendulum.py`: equations of motion, energy, Euler, RK4, Lyapunov exponent and the analysis.
+- `test_pendulum.py`: tests.
+- `notebooks/pendulo_doble.ipynb`: the original notebook, in Spanish, with the derivation of the equations and the animations.
+
+## Author
+
+Tomás Aubin, Physics undergraduate at UBA.
